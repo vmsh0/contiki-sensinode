@@ -33,7 +33,7 @@
  *
  * This file is part of the Contiki operating system.
  *
- * $Id: collect.c,v 1.65 2010/10/28 15:36:02 adamdunkels Exp $
+ * $Id: collect.c,v 1.67 2010/12/14 22:14:33 dak664 Exp $
  */
 
 /**
@@ -1277,7 +1277,11 @@ collect_open(struct collect_conn *tc, uint16_t channels,
   neighbor_discovery_open(&tc->neighbor_discovery_conn, channels,
 			  CLOCK_SECOND * 4,
 			  CLOCK_SECOND * 60,
-                          CLOCK_SECOND * 600UL,
+#ifdef COLLECT_CONF_BROADCAST_ANNOUNCEMENT_MAX_TIME
+              COLLECT_CONF_BROADCAST_ANNOUNCEMENT_MAX_TIME,
+#else
+              CLOCK_SECOND * 600UL,
+#endif
 			  &neighbor_discovery_callbacks);
   neighbor_discovery_start(&tc->neighbor_discovery_conn, tc->rtmetric);
 #else /* !COLLECT_ANNOUNCEMENTS */
@@ -1470,6 +1474,12 @@ int
 collect_depth(struct collect_conn *tc)
 {
   return tc->rtmetric;
+}
+/*---------------------------------------------------------------------------*/
+const rimeaddr_t *
+collect_parent(struct collect_conn *tc)
+{
+  return &tc->current_parent;
 }
 /*---------------------------------------------------------------------------*/
 void

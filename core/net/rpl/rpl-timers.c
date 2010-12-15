@@ -32,7 +32,7 @@
  *
  * This file is part of the Contiki operating system.
  *
- * $Id: rpl-timers.c,v 1.12 2010/10/28 20:39:06 joxe Exp $
+ * $Id: rpl-timers.c,v 1.15 2010/12/15 12:12:27 nvt-se Exp $
  */
 /**
  * \file
@@ -46,7 +46,7 @@
 #include "lib/random.h"
 #include "sys/ctimer.h"
 
-#define DEBUG DEBUG_ANNOTATE
+#define DEBUG DEBUG_NONE
 #include "net/uip-debug.h"
 
 /************************************************************************/
@@ -82,19 +82,25 @@ handle_periodic_timer(void *ptr)
 static void
 new_dio_interval(rpl_dag_t *dag)
 {
-  unsigned long time;
+  uint32_t time;
 
   /* TODO: too small timer intervals for many cases */
   time = 1UL << dag->dio_intcurrent;
 
-  /* need to convert from milliseconds to CLOCK_TICKS */
+  /* Convert from milliseconds to CLOCK_TICKS. */
   time = (time * CLOCK_SECOND) / 1000;
+
   dag->dio_next_delay = time;
 
   /* random number between I/2 and I */
   time = time >> 1;
-  time += (time * random_rand()) / RANDOM_MAX;
+  time += (time * random_rand()) / RANDOM_RAND_MAX;
 
+  /*
+   * The intervals must be equally long among the nodes for Trickle to
+   * operate efficiently. Therefore we need to calculate the delay between
+   * the randomized time and the start time of the next interval.
+   */
   dag->dio_next_delay -= time;
   dag->dio_send = 1;
 
@@ -116,7 +122,7 @@ new_dio_interval(rpl_dag_t *dag)
 
   /* schedule the timer */
   PRINTF("RPL: Scheduling DIO timer %lu ticks in future (Interval)\n", time);
-  ctimer_set(&dag->dio_timer, time & 0xffff, &handle_dio_timer, dag);
+  ctimer_set(&dag->dio_timer, time, &handle_dio_timer, dag);
 }
 /************************************************************************/
 static void

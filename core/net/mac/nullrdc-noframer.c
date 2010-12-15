@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, Swedish Institute of Computer Science
+ * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,28 +28,74 @@
  *
  * This file is part of the Contiki operating system.
  *
- * @(#)$Id: random.c,v 1.5 2010/12/13 16:52:02 dak664 Exp $
+ * $Id: nullrdc-noframer.c,v 1.1 2010/11/23 18:11:00 nifi Exp $
  */
 
+/**
+ * \file
+ *         A MAC protocol that does not do anything.
+ * \author
+ *         Adam Dunkels <adam@sics.se>
+ */
 
-#include "lib/random.h"
-#include "sys/clock.h"
-
-#include <stdlib.h>
+#include "net/mac/nullrdc-noframer.h"
+#include "net/packetbuf.h"
+#include "net/netstack.h"
 
 /*---------------------------------------------------------------------------*/
-void
-random_init(unsigned short seed)
+static void
+send_packet(mac_callback_t sent, void *ptr)
 {
-  srand(seed);
+  int ret;
+  if(NETSTACK_RADIO.send(packetbuf_hdrptr(), packetbuf_totlen()) == RADIO_TX_OK) {
+    ret = MAC_TX_OK;
+  } else {
+    ret =  MAC_TX_ERR;
+  }
+  mac_call_sent_callback(sent, ptr, ret, 1);
 }
 /*---------------------------------------------------------------------------*/
-unsigned short
-random_rand(void)
+static void
+packet_input(void)
 {
-/* In gcc int rand() uses RAND_MAX and long random() uses RANDOM_MAX=0x7FFFFFFF */
-/* RAND_MAX varies depending on the architecture */
-
-  return (unsigned short)rand();
+  NETSTACK_MAC.input();
 }
+/*---------------------------------------------------------------------------*/
+static int
+on(void)
+{
+  return NETSTACK_RADIO.on();
+}
+/*---------------------------------------------------------------------------*/
+static int
+off(int keep_radio_on)
+{
+  if(keep_radio_on) {
+    return NETSTACK_RADIO.on();
+  } else {
+    return NETSTACK_RADIO.off();
+  }
+}
+/*---------------------------------------------------------------------------*/
+static unsigned short
+channel_check_interval(void)
+{
+  return 0;
+}
+/*---------------------------------------------------------------------------*/
+static void
+init(void)
+{
+  on();
+}
+/*---------------------------------------------------------------------------*/
+const struct rdc_driver nullrdc_noframer_driver = {
+  "nullrdc-noframer",
+  init,
+  send_packet,
+  packet_input,
+  on,
+  off,
+  channel_check_interval,
+};
 /*---------------------------------------------------------------------------*/
