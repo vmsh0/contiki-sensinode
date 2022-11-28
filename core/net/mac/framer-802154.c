@@ -79,7 +79,6 @@ is_broadcast_addr(uint8_t mode, uint8_t *addr)
 static int
 create(void)
 {
-
   /* init to zeros */
   memset(&frame, 0, sizeof(frame));
 
